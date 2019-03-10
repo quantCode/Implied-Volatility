@@ -1,0 +1,50 @@
+## Functions
+
+## Newton-Rapson algorithm for extracting implied volatility from option prices
+## Also, calling Brent-Dekker method as a benchmark
+
+## Black Scholes pricer
+# TODO: add the inversion for put option
+BSprice <-function(S,K,t,vol,r,putCall=1){
+  
+  v = vol*sqrt(t) # integrated volatility
+  d1 = (log(S/K)+(r+0.5*vol^2)*t)/ v
+  d2 = d1 - v
+  
+  S*pnorm(d1) - K * exp(-r*t) * pnorm(d2)
+}
+
+## Newton Rapson implementation in R
+# TODO:
+impliedVolNR <- function(price, S, K, t, r, putCall=1, max = 100, x0 = 1, tolerance = 0.0001, fallback = 0.2){
+  
+  curVol = x0
+  
+  for(i in 1:max){
+    F = BSprice(S,K,t,curVol, r, putCall) - price
+    
+    if(abs(F) < tolerance){
+      return(curVol) 
+    }else{
+      v = curVol*sqrt(t) # integrated volatility
+      d1 = (log(S/K)+(r+0.5*curVol^2)*t)/ v
+      dF = dnorm(d1)*S*sqrt(t)
+      curVol = curVol - (F/dF)
+    }  
+  }
+  return(fallback)
+}
+
+## using Brent-Dekker algorithm as a benchmark:
+
+# objective function
+priceDiff <- function(volatility, price, S,K,t,r,putCall=1){
+  abs(
+    price - BSprice(S,K,t,vol= volatility, r,putCall)
+  )
+}
+
+optimize(f = priceDiff, c(0,5), price = 37.40068, S = 110, K = 100, t = 0.5, r=0.02, putCall = 1 ,tol = 0.00001)
+
+# TODO: get below to work too
+# optim(par = 1, f = priceDiff, c(0,5), price = 14.36902, S = 110, K = 100, t = 0.5, r=0.02, putCall = 1 )
